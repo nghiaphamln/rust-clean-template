@@ -1,2 +1,2 @@
-pub mod rabbitmq;
 pub mod models;
+pub mod rabbitmq;

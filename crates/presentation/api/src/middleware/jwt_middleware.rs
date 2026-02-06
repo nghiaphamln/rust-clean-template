@@ -1,13 +1,12 @@
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpMessage, error::ErrorUnauthorized,
+    error::ErrorUnauthorized,
+    web, Error, HttpMessage,
 };
 use futures_util::future::LocalBoxFuture;
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use std::env;
 use std::rc::Rc;
 
-use crate::dto::TokenClaims;
+use crate::state::AppState;
 
 pub struct JwtMiddleware;
 
@@ -55,7 +54,9 @@ where
 
             let token = match auth_header {
                 Some(header) => {
-                    let header_str = header.to_str().map_err(|_| ErrorUnauthorized("Invalid header"))?;
+                    let header_str = header
+                        .to_str()
+                        .map_err(|_| ErrorUnauthorized("Invalid header"))?;
                     if !header_str.starts_with("Bearer ") {
                         return Err(ErrorUnauthorized("Invalid token format"));
                     }
@@ -66,15 +67,17 @@ where
                 }
             };
 
-            let jwt_secret = env::var("JWT_SECRET")
-                .map_err(|_| ErrorUnauthorized("JWT secret not configured"))?;
+            // Get AppState
+            // Note: In actix-web 4, app_data is available in ServiceRequest
+            let app_state = req
+                .app_data::<web::Data<AppState>>()
+                .ok_or_else(|| ErrorUnauthorized("Internal Server Error: AppState not found"))?;
 
-            let decoding_key = DecodingKey::from_secret(jwt_secret.as_bytes());
-            let validation = Validation::new(Algorithm::HS256);
-
-            match decode::<TokenClaims>(token, &decoding_key, &validation) {
-                Ok(token_data) => {
-                    req.extensions_mut().insert(token_data.claims);
+            // Verify token using provider from AppState
+            // This decouples Presentation from specific JWT implementation
+            match app_state.token_provider.verify_token(token) {
+                Ok(claims) => {
+                    req.extensions_mut().insert(claims);
                     service.call(req).await
                 }
                 Err(_) => Err(ErrorUnauthorized("Invalid token")),
@@ -82,4 +85,3 @@ where
         })
     }
 }
-

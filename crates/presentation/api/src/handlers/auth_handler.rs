@@ -1,7 +1,7 @@
-use actix_web::{web, HttpResponse, post, HttpRequest};
+use actix_web::{post, web, HttpRequest, HttpResponse};
 use thiserror::Error;
 
-use crate::dto::{RegisterRequest, LoginRequest, ErrorResponse, RefreshTokenRequest};
+use crate::dto::{ErrorResponse, LoginRequest, RefreshTokenRequest, RegisterRequest};
 use crate::state::AppState;
 use rust_clean_domain::DomainError;
 
@@ -65,9 +65,13 @@ pub async fn register(
         name: dto.name.clone(),
     };
 
-    let user = state.auth_service.register(request).await.map_err(HandlerError::from)?;
-    
-    Ok(HttpResponse::Created().json(&crate::dto::UserResponse::from(&user)))
+    let user = state
+        .register_user
+        .execute(request)
+        .await
+        .map_err(HandlerError::from)?;
+
+    Ok(HttpResponse::Created().json(crate::dto::UserResponse::from(&user)))
 }
 
 #[post("/login")]
@@ -80,8 +84,12 @@ pub async fn login(
         password: dto.password.clone(),
     };
 
-    let token_response = state.auth_service.login(request).await.map_err(HandlerError::from)?;
-    
+    let token_response = state
+        .login_user
+        .execute(request)
+        .await
+        .map_err(HandlerError::from)?;
+
     Ok(HttpResponse::Ok().json(&token_response))
 }
 
@@ -92,7 +100,9 @@ pub async fn refresh(
     _dto: web::Json<RefreshTokenRequest>,
 ) -> Result<HttpResponse, HandlerError> {
     // Extract the access token from Authorization header
-    let auth_header = req.headers().get("Authorization")
+    let auth_header = req
+        .headers()
+        .get("Authorization")
         .and_then(|h| h.to_str().ok())
         .ok_or_else(|| HandlerError::AuthError("Missing authorization header".to_string()))?;
 
@@ -101,13 +111,10 @@ pub async fn refresh(
     }
 
     let token = &auth_header[7..];
-    
-    // Verify the current access token and get claims
-    let claims = state.auth_service.verify_token(token)
-        .map_err(|_| HandlerError::AuthError("Invalid or expired token".to_string()))?;
 
-    // Refresh the token
-    let token_response = state.auth_service.refresh_token(claims)
+    let token_response = state
+        .refresh_token
+        .execute(token)
         .map_err(HandlerError::from)?;
 
     Ok(HttpResponse::Ok().json(&token_response))

@@ -33,7 +33,8 @@ impl RabbitMQConsumer {
         Fut: std::future::Future<Output = ()> + Send,
     {
         let conn = self.connection.get_connection();
-        let channel = conn.create_channel()
+        let channel = conn
+            .create_channel()
             .await
             .map_err(|e| ConsumerError::ConsumeError(e.to_string()))?;
 

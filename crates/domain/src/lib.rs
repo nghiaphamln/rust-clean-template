@@ -1,7 +1,7 @@
 pub mod entities;
-pub mod repositories;
 pub mod errors;
+pub mod repositories;
 
 pub use entities::*;
-pub use repositories::*;
 pub use errors::*;
+pub use repositories::*;

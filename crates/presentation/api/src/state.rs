@@ -1,36 +1,44 @@
 use std::sync::Arc;
 
-use rust_clean_infrastructure::Database;
-use rust_clean_application::{AuthService, UserService};
+use rust_clean_application::abstractions::TokenProvider;
+use rust_clean_application::usecases::auth::{
+    LoginUseCase, RefreshTokenUseCase, RegisterUserUseCase,
+};
+use rust_clean_application::usecases::users::{
+    DeleteUserUseCase, GetUserByIdUseCase, GetUsersUseCase, UpdateUserUseCase,
+};
 
 pub struct AppState {
-    pub database: Arc<Database>,
-    pub auth_service: Arc<AuthService<rust_clean_infrastructure::PgUserRepository>>,
-    pub user_service: Arc<UserService<rust_clean_infrastructure::PgUserRepository>>,
+    pub register_user: Arc<RegisterUserUseCase>,
+    pub login_user: Arc<LoginUseCase>,
+    pub refresh_token: Arc<RefreshTokenUseCase>,
+    pub get_users: Arc<GetUsersUseCase>,
+    pub get_user_by_id: Arc<GetUserByIdUseCase>,
+    pub update_user: Arc<UpdateUserUseCase>,
+    pub delete_user: Arc<DeleteUserUseCase>,
+    pub token_provider: Arc<dyn TokenProvider>,
 }
 
 impl AppState {
-    pub async fn new(
-        database: Database,
-        jwt_secret: String,
-        jwt_expiry_hours: i64,
+    pub fn new(
+        register_user: Arc<RegisterUserUseCase>,
+        login_user: Arc<LoginUseCase>,
+        refresh_token: Arc<RefreshTokenUseCase>,
+        get_users: Arc<GetUsersUseCase>,
+        get_user_by_id: Arc<GetUserByIdUseCase>,
+        update_user: Arc<UpdateUserUseCase>,
+        delete_user: Arc<DeleteUserUseCase>,
+        token_provider: Arc<dyn TokenProvider>,
     ) -> Self {
-        let repository = Arc::new(rust_clean_infrastructure::PgUserRepository::new(
-            database.pool().clone(),
-        ));
-
-        let auth_service = Arc::new(AuthService::new(
-            repository.clone(),
-            jwt_secret,
-            jwt_expiry_hours,
-        ));
-
-        let user_service = Arc::new(UserService::new(repository));
-
         Self {
-            database: Arc::new(database),
-            auth_service,
-            user_service,
+            register_user,
+            login_user,
+            refresh_token,
+            get_users,
+            get_user_by_id,
+            update_user,
+            delete_user,
+            token_provider,
         }
     }
 }

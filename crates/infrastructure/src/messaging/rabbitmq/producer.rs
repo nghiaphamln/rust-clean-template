@@ -28,7 +28,8 @@ impl RabbitMQProducer {
 
     pub async fn publish(&self, routing_key: &str, message: &[u8]) -> Result<(), ProducerError> {
         let conn = self.connection.get_connection();
-        let channel = conn.create_channel()
+        let channel = conn
+            .create_channel()
             .await
             .map_err(|e| ProducerError::PublishError(e.to_string()))?;
 
@@ -53,14 +54,21 @@ impl RabbitMQProducer {
             .await
             .map_err(|e| ProducerError::PublishError(e.to_string()))?;
 
-        info!("Message published to exchange '{}' with routing key '{}'", self.exchange_name, routing_key);
+        info!(
+            "Message published to exchange '{}' with routing key '{}'",
+            self.exchange_name, routing_key
+        );
 
         Ok(())
     }
 
-    pub async fn publish_json<T: serde::Serialize>(&self, routing_key: &str, message: &T) -> Result<(), ProducerError> {
-        let json = serde_json::to_vec(message)
-            .map_err(|e| ProducerError::PublishError(e.to_string()))?;
+    pub async fn publish_json<T: serde::Serialize>(
+        &self,
+        routing_key: &str,
+        message: &T,
+    ) -> Result<(), ProducerError> {
+        let json =
+            serde_json::to_vec(message).map_err(|e| ProducerError::PublishError(e.to_string()))?;
         self.publish(routing_key, &json).await
     }
 }

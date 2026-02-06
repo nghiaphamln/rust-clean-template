@@ -14,7 +14,7 @@ rust-clean-application = { path = "../../crates/application" }
 tokio = { workspace = true }
 actix-web = "4"
 actix-cors = "0.6"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-config = "0.13"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
 dotenvy = "0.15"

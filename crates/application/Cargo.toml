@@ -5,18 +5,11 @@ edition.workspace = true
 
 [dependencies]
 rust-clean-domain = { path = "../domain" }
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "1.0"
-async-trait = "0.1"
-chrono = "0.4"
-uuid = "1"
-jsonwebtoken = "9"
-bcrypt = "0.15"
-rand = "0.8"
-validator = { version = "0.16", features = ["derive"] }
-sha2 = "0.10"
-hex = "0.4"
-utoipa = { version = "4.2", features = ["chrono"] }
+serde = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+validator = { workspace = true }
+utoipa = { workspace = true }
 
-[dev-dependencies]
-rust-clean-infrastructure = { path = "../infrastructure" }

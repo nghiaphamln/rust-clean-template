@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use rust_clean_domain::UserRole;
-
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct UserResponse {
     pub id: Uuid,

@@ -1,8 +1,8 @@
-use sqlx::PgPool;
 use async_trait::async_trait;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use rust_clean_domain::{User, UserRepository, DomainError};
+use rust_clean_domain::{DomainError, User, UserRepository};
 
 fn convert_role_from_str(role_str: &str) -> rust_clean_domain::UserRole {
     match role_str {
@@ -92,29 +92,39 @@ impl UserRepository for PgUserRepository {
 
         let users: Vec<User> = rows
             .into_iter()
-            .map(|(id, email, password_hash, name, role, created_at, updated_at)| {
-                let domain_role = convert_role_from_str(&role);
-                User {
-                    id,
-                    email,
-                    password_hash,
-                    name,
-                    role: domain_role,
-                    created_at,
-                    updated_at,
-                }
-            })
+            .map(
+                |(id, email, password_hash, name, role, created_at, updated_at)| {
+                    let domain_role = convert_role_from_str(&role);
+                    User {
+                        id,
+                        email,
+                        password_hash,
+                        name,
+                        role: domain_role,
+                        created_at,
+                        updated_at,
+                    }
+                },
+            )
             .collect();
         Ok(users)
     }
 
     async fn create(&self, user: &User) -> Result<User, DomainError> {
-        let row: (Uuid, String, String, String, String, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>) = sqlx::query_as(
+        let row: (
+            Uuid,
+            String,
+            String,
+            String,
+            String,
+            chrono::DateTime<chrono::Utc>,
+            chrono::DateTime<chrono::Utc>,
+        ) = sqlx::query_as(
             r#"
             INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id, email, password_hash, name, role, created_at, updated_at
-            "#
+            "#,
         )
         .bind(user.id)
         .bind(&user.email)
@@ -140,13 +150,21 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn update(&self, user: &User) -> Result<User, DomainError> {
-        let row: (Uuid, String, String, String, String, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>) = sqlx::query_as(
+        let row: (
+            Uuid,
+            String,
+            String,
+            String,
+            String,
+            chrono::DateTime<chrono::Utc>,
+            chrono::DateTime<chrono::Utc>,
+        ) = sqlx::query_as(
             r#"
             UPDATE users
             SET email = $2, password_hash = $3, name = $4, role = $5, updated_at = $6
             WHERE id = $1
             RETURNING id, email, password_hash, name, role, created_at, updated_at
-            "#
+            "#,
         )
         .bind(user.id)
         .bind(&user.email)
@@ -171,13 +189,10 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<(), DomainError> {
-        sqlx::query!(
-            "DELETE FROM users WHERE id = $1",
-            id
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        sqlx::query!("DELETE FROM users WHERE id = $1", id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         Ok(())
     }
