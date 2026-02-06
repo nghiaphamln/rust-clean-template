@@ -1,6 +1,5 @@
 use std::env;
 use tracing::{info, level_filters::LevelFilter};
-use tracing_subscriber::fmt;
 use dotenvy::dotenv;
 
 use rust_clean_infrastructure::{Database, rabbitmq::{RabbitMQConnection, RabbitMQConsumer}};

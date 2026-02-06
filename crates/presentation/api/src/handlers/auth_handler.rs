@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, post, HttpRequest};
 use thiserror::Error;
 
-use crate::dto::{RegisterRequest, LoginRequest, TokenResponse, ErrorResponse, RefreshTokenRequest};
+use crate::dto::{RegisterRequest, LoginRequest, ErrorResponse, RefreshTokenRequest};
 use crate::state::AppState;
 use rust_clean_domain::DomainError;
 

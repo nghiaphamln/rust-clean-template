@@ -2,7 +2,9 @@ use actix_web::{web, HttpResponse, get, put, delete};
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::dto::{UserResponse, ErrorResponse, UserUpdateRequest};
+use crate::dto::UserResponse;
+use crate::dto::ErrorResponse;
+use crate::dto::UserUpdateRequest;
 use crate::state::AppState;
 use rust_clean_domain::DomainError;
 

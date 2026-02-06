@@ -1,6 +1,6 @@
 use actix_web::{web, HttpResponse};
 
-use crate::dto::{RegisterRequest, LoginRequest, TokenResponse};
+use crate::dto::{RegisterRequest, LoginRequest};
 use crate::state::AppState;
 use crate::handlers::HandlerError;
 

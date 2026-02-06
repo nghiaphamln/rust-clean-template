@@ -8,7 +8,6 @@ use actix_web::web;
 
 use crate::handlers::{auth_handler, user_handler};
 use crate::middleware::JwtMiddleware;
-use crate::state::AppState;
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
