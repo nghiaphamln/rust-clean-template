@@ -7,7 +7,9 @@ use std::sync::Arc;
 use tracing::{info, level_filters::LevelFilter};
 
 use rust_clean_api::{handlers, state::AppState};
-use rust_clean_application::usecases::auth::{LoginUseCase, RefreshTokenUseCase, RegisterUserUseCase};
+use rust_clean_application::usecases::auth::{
+    LoginUseCase, RefreshTokenUseCase, RegisterUserUseCase,
+};
 use rust_clean_application::usecases::users::{
     DeleteUserUseCase, GetUserByIdUseCase, GetUsersUseCase, UpdateUserUseCase,
 };
@@ -59,16 +61,21 @@ async fn main() -> std::io::Result<()> {
     let delete_user = Arc::new(DeleteUserUseCase::new(user_repository.clone()));
 
     // Initialize Presentation State
-    let app_state = web::Data::new(AppState::new(
+    let auth_use_cases = rust_clean_api::state::AuthUseCases {
         register_user,
         login_user,
         refresh_token,
+        token_provider: token_provider.clone(),
+    };
+
+    let user_use_cases = rust_clean_api::state::UserUseCases {
         get_users,
         get_user_by_id,
         update_user,
         delete_user,
-        token_provider.clone(),
-    ));
+    };
+
+    let app_state = web::Data::new(AppState::new(auth_use_cases, user_use_cases));
 
     let addr = SocketAddr::new(host.parse().unwrap(), port);
     info!("Starting API server on {}", addr);

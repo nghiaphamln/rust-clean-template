@@ -2,11 +2,11 @@
 
 A production-ready microservice template built with Rust, designed for scalability, maintainability, and type safety using **Clean Architecture** principles.
 
-## 🎯 Purpose
+## Purpose
 
 This project serves as a robust starting point for building backend microservices in Rust. It enforces a strict separation of concerns, ensuring that business logic remains independent of frameworks, databases, and external interfaces.
 
-## ✨ Key Features
+## Key Features
 
 - **Strict Clean Architecture**: Explicit layers for Domain, Application, Infrastructure, and Presentation.
 - **Type-Safe Database**: PostgreSQL integration via **SQLx** for compile-time query verification.
@@ -15,7 +15,7 @@ This project serves as a robust starting point for building backend microservice
 - **Security First**: JWT Authentication (Access + Refresh Tokens) and Bcrypt password hashing.
 - **Developer Experience**: Pre-configured with **Docker Compose**, **Flyway** migrations, and **Swagger/OpenAPI** documentation.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - [Rust](https://rustup.rs/) (1.75+)
@@ -40,7 +40,7 @@ This project serves as a robust starting point for building backend microservice
     - **API Server**: `http://localhost:8080`
     - **Swagger UI**: `http://localhost:8080/swagger-ui/`
 
-## 📁 Project Structure
+## Project Structure
 
 The workspace is organized into modular crates to enforce dependency rules:
 
@@ -53,7 +53,7 @@ The workspace is organized into modular crates to enforce dependency rules:
 ├── bins/                 # Executables (api, consumer) - Wiring everything together
 ```
 
-## 🛠 Commands
+## Commands
 
 | Command | Description |
 |---------|-------------|

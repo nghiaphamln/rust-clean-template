@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use rust_clean_domain::{DomainError, UserRepository};
+use std::sync::Arc;
 
 use crate::abstractions::{PasswordHasher, TokenProvider};
 use crate::dto::{LoginRequest, TokenResponse};

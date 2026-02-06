@@ -29,7 +29,7 @@ impl actix_web::ResponseError for UserHandlerError {
             UserHandlerError::NotFound => ("Not Found".to_string(), "User not found".to_string()),
             UserHandlerError::ValidationError(msg) => ("Validation Error".to_string(), msg.clone()),
         };
-        
+
         HttpResponse::build(status_code).json(ErrorResponse {
             error,
             message,
@@ -50,6 +50,7 @@ impl From<DomainError> for UserHandlerError {
 #[get("")]
 pub async fn get_users(state: web::Data<AppState>) -> Result<HttpResponse, UserHandlerError> {
     let users = state
+        .users
         .get_users
         .execute()
         .await
@@ -64,6 +65,7 @@ pub async fn get_user_by_id(
     id: web::Path<Uuid>,
 ) -> Result<HttpResponse, UserHandlerError> {
     let user = state
+        .users
         .get_user_by_id
         .execute(id.into_inner())
         .await
@@ -83,6 +85,7 @@ pub async fn update_user(
     ))?;
 
     let user = state
+        .users
         .update_user
         .execute(id.into_inner(), name)
         .await
@@ -91,13 +94,13 @@ pub async fn update_user(
     Ok(HttpResponse::Ok().json(user))
 }
 
-
 #[delete("/{id}")]
 pub async fn delete_user(
     state: web::Data<AppState>,
     id: web::Path<Uuid>,
 ) -> Result<HttpResponse, UserHandlerError> {
     state
+        .users
         .delete_user
         .execute(id.into_inner())
         .await

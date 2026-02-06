@@ -66,6 +66,7 @@ pub async fn register(
     };
 
     let user = state
+        .auth
         .register_user
         .execute(request)
         .await
@@ -85,6 +86,7 @@ pub async fn login(
     };
 
     let token_response = state
+        .auth
         .login_user
         .execute(request)
         .await
@@ -113,6 +115,7 @@ pub async fn refresh(
     let token = &auth_header[7..];
 
     let token_response = state
+        .auth
         .refresh_token
         .execute(token)
         .map_err(HandlerError::from)?;
