@@ -6,8 +6,8 @@ edition.workspace = true
 [dependencies]
 rust-clean-application = { path = "../../application" }
 rust-clean-domain = { path = "../../domain" }
-actix-web = "4"
-actix-cors = "0.6"
+actix-web = "4.12.1"
+actix-cors = "0.7.1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

@@ -61,5 +61,21 @@ The workspace is organized into modular crates to enforce dependency rules:
 | `make test` | Run unit tests |
 | `make run-api` | Start the REST API server |
 | `make run-consumer` | Start the RabbitMQ consumer |
-| `make migrate` | Apply database migrations |
 | `make lint` | Run clippy and format checks |
+
+## Database Migrations (Flyway)
+
+Prerequisites: [Flyway CLI](https://flywaydb.org/documentation/usage/commands/) installed.
+
+Migrations location: `./migrations/`
+
+```bash
+# Apply all migrations
+flyway -url="postgresql://postgres:postgres@localhost:5432/rust_clean_db" migrate
+
+# Create new migration
+flyway -url="..." create <name>
+
+# Repair (fix checksum mismatches)
+flyway -url="..." repair
+```
