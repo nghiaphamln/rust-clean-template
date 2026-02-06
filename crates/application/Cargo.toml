@@ -1,0 +1,15 @@
+[package]
+name = "rust-clean-application"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rust-clean-domain = { path = "../domain" }
+serde = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+validator = { workspace = true }
+utoipa = { workspace = true }
+

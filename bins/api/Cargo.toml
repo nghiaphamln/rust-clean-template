@@ -1,0 +1,20 @@
+[package]
+name = "rust-clean-api-binary"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "api"
+path = "src/main.rs"
+
+[dependencies]
+rust-clean-api = { path = "../../crates/presentation/api" }
+rust-clean-infrastructure = { path = "../../crates/infrastructure" }
+rust-clean-application = { path = "../../crates/application" }
+tokio = { workspace = true }
+actix-web = "4"
+actix-cors = "0.6"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
+dotenvy = "0.15"

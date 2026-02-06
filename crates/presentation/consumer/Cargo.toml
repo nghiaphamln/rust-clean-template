@@ -1,0 +1,15 @@
+[package]
+name = "rust-clean-consumer-lib"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rust-clean-application = { path = "../../application" }
+rust-clean-domain = { path = "../../domain" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+futures-lite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }

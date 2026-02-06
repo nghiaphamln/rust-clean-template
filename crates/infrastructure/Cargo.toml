@@ -1,0 +1,25 @@
+[package]
+name = "rust-clean-infrastructure"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rust-clean-domain = { path = "../domain" }
+rust-clean-application = { path = "../application" }
+sqlx = { workspace = true, features = ["uuid"] }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+config = { workspace = true }
+tracing = { workspace = true }
+lapin = { workspace = true, features = ["rustls-native-certs"] }
+futures-lite = { workspace = true }
+sha2 = { workspace = true }
+async-trait = { workspace = true }
+uuid = { workspace = true }
+hex = { workspace = true }
+chrono = { workspace = true }
+bcrypt = { workspace = true }
+jsonwebtoken = { workspace = true }
+rand = { workspace = true }
