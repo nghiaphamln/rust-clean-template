@@ -1,7 +1,7 @@
 pub mod login;
-pub mod register;
 pub mod refresh_token;
+pub mod register;
 
 pub use login::LoginUseCase;
-pub use register::RegisterUserUseCase;
 pub use refresh_token::RefreshTokenUseCase;
+pub use register::RegisterUserUseCase;

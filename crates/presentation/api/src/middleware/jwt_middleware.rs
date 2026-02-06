@@ -75,7 +75,7 @@ where
 
             // Verify token using provider from AppState
             // This decouples Presentation from specific JWT implementation
-            match app_state.token_provider.verify_token(token) {
+            match app_state.auth.token_provider.verify_token(token) {
                 Ok(claims) => {
                     req.extensions_mut().insert(claims);
                     service.call(req).await
