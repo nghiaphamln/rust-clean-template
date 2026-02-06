@@ -1,0 +1,17 @@
+[package]
+name = "rust-clean-consumer-binary"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "consumer"
+path = "src/main.rs"
+
+[dependencies]
+rust-clean-consumer-lib = { path = "../../crates/presentation/consumer" }
+rust-clean-infrastructure = { path = "../../crates/infrastructure" }
+tokio = { workspace = true }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+config = "0.13"
+dotenvy = "0.15"

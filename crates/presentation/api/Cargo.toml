@@ -1,0 +1,34 @@
+[package]
+name = "rust-clean-api"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rust-clean-infrastructure = { path = "../../infrastructure" }
+rust-clean-application = { path = "../../application" }
+rust-clean-domain = { path = "../../domain" }
+actix-web = "4"
+actix-cors = "0.6"
+serde = { workspace = true }
+serde_json = "1.0"
+thiserror = "1.0"
+validator = { version = "0.16", features = ["derive"] }
+config = "0.13"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = "1"
+futures-util = "0.3"
+
+# JWT
+jsonwebtoken = "9"
+
+# Password hashing
+bcrypt = "0.15"
+
+# Swagger/OpenAPI
+utoipa = { version = "4.2", features = ["actix_extras", "chrono"] }
+utoipa-swagger-ui = { version = "5.0", features = ["actix-web"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+wiremock = "0.5"
