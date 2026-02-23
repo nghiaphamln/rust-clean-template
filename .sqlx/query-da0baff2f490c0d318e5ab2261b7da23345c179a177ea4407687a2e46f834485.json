@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO failed_logins (\n                id,\n                email,\n                ip_address,\n                attempts,\n                locked_until,\n                last_attempt_at,\n                created_at\n            )\n            VALUES ($1, $2, $3, 1, NULL, NOW(), NOW())\n            ON CONFLICT ON CONSTRAINT failed_logins_email_ip_unique\n            DO UPDATE SET\n                attempts = failed_logins.attempts + 1,\n                last_attempt_at = NOW(),\n                locked_until = CASE\n                    WHEN failed_logins.attempts + 1 >= $4 THEN NOW() + make_interval(mins => $5::int)\n                    ELSE failed_logins.locked_until\n                END\n            RETURNING id, email, ip_address, attempts, locked_until, last_attempt_at, created_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "ip_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "locked_until",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_attempt_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "da0baff2f490c0d318e5ab2261b7da23345c179a177ea4407687a2e46f834485"
+}

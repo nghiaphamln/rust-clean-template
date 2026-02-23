@@ -13,8 +13,7 @@ impl RefreshTokenUseCase {
         Self { token_provider }
     }
 
-    pub fn execute(&self, token: &str) -> Result<TokenResponse, DomainError> {
-        let claims = self.token_provider.verify_token(token)?;
-        self.token_provider.refresh_tokens(&claims)
+    pub fn execute(&self, refresh_token: &str) -> Result<TokenResponse, DomainError> {
+        self.token_provider.refresh_tokens(refresh_token)
     }
 }

@@ -12,7 +12,8 @@ This project serves as a robust starting point for building backend microservice
 - **Type-Safe Database**: PostgreSQL integration via **SQLx** for compile-time query verification.
 - **High Performance**: Built on **Actix-web** and **Tokio**.
 - **Event-Driven**: Ready-to-use **RabbitMQ** integration for asynchronous messaging.
-- **Security First**: JWT Authentication (Access + Refresh Tokens) and Bcrypt password hashing.
+- **Security First**: JWT Authentication (Access + Refresh Tokens) with persisted refresh tokens (rotation) and Bcrypt password hashing.
+- **Brute-force Protection**: Per-IP rate limiting on login plus failed login tracking and temporary account lockout (PostgreSQL-backed).
 - **Developer Experience**: Pre-configured with **Docker Compose**, **Flyway** migrations, and **Swagger/OpenAPI** documentation.
 
 ## Quick Start
@@ -69,9 +70,20 @@ Prerequisites: [Flyway CLI](https://flywaydb.org/documentation/usage/commands/) 
 
 Migrations location: `./migrations/`
 
+Included migrations:
+- `migrations/V1__create_users_table.sql`: users table
+- `migrations/V2__add_jwt_table.sql`: refresh token persistence
+- `migrations/V3__add_failed_logins_table.sql`: failed login tracking + lockout
+- `migrations/V4__failed_logins_created_at_not_null.sql`: enforce `created_at` non-null on existing DB
+
+Brute-force configuration (optional env vars):
+- `BRUTE_FORCE_MAX_LOGIN_ATTEMPTS` (default: `5`)
+- `BRUTE_FORCE_LOCKOUT_DURATION_MINUTES` (default: `30`)
+- `BRUTE_FORCE_RATE_LIMIT_REQUESTS_PER_MINUTE` (default: `10`)
+
 ```bash
 # Apply all migrations
-flyway -url="postgresql://postgres:postgres@localhost:5432/rust_clean_db" migrate
+flyway -url="jdbc:postgresql://localhost:5432/rust_clean_db" -user=postgres -password=postgres -locations=filesystem:./migrations migrate
 
 # Create new migration
 flyway -url="..." create <name>

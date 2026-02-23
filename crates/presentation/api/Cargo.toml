@@ -17,6 +17,8 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 futures-util = "0.3"
+chrono = { workspace = true }
+tokio = { workspace = true }
 
 # JWT
 # jsonwebtoken removed - moved to infrastructure

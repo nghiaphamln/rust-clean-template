@@ -5,11 +5,11 @@ use utoipa_swagger_ui::SwaggerUi;
 #[openapi(
     components(
         schemas(
-            crate::dto::RegisterRequest,
-            crate::dto::LoginRequest,
-            crate::dto::TokenResponse,
-            crate::dto::UserResponse,
-            crate::dto::ErrorResponse,
+            rust_clean_application::dto::RegisterRequest,
+            rust_clean_application::dto::LoginRequest,
+            rust_clean_application::dto::TokenResponse,
+            rust_clean_application::dto::UserResponse,
+            rust_clean_application::dto::ErrorResponse,
         )
     ),
     tags(

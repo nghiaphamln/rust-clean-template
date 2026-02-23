@@ -13,7 +13,8 @@ docker-down:
 
 migrate:
 	@if command -v flyway >/dev/null 2>&1; then \
-		flyway -url="postgresql://postgres:postgres@localhost:5432/rust_clean_db" \
+		flyway -url="jdbc:postgresql://localhost:5432/rust_clean_db" \
+			   -user=postgres -password=postgres \
 			   -locations=filesystem:./migrations migrate; \
 	else \
 		echo "Flyway not found. Please install Flyway CLI."; \

@@ -6,14 +6,22 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::{info, level_filters::LevelFilter};
 
-use rust_clean_api::{handlers, state::AppState};
+use rust_clean_api::{
+    handlers,
+    middleware::brute_force_protection::{BruteForceConfig, BruteForceMiddlewareFactory},
+    middleware::jwt_middleware::JwtMiddleware,
+    state::AppState,
+};
 use rust_clean_application::usecases::auth::{
     LoginUseCase, RefreshTokenUseCase, RegisterUserUseCase,
 };
 use rust_clean_application::usecases::users::{
     DeleteUserUseCase, GetUserByIdUseCase, GetUsersUseCase, UpdateUserUseCase,
 };
-use rust_clean_infrastructure::{BcryptHasher, Database, JwtTokenProvider, PgUserRepository};
+use rust_clean_infrastructure::{
+    BcryptHasher, Database, JwtTokenProvider, PgFailedLoginRepository, PgRefreshTokenRepository,
+    PgUserRepository,
+};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -41,8 +49,14 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to initialize database");
     let user_repository = Arc::new(PgUserRepository::new(database.pool().clone()));
+    let refresh_token_repository = Arc::new(PgRefreshTokenRepository::new(database.pool().clone()));
+    let failed_login_repository = Arc::new(PgFailedLoginRepository::new(database.pool().clone()));
     let password_hasher = Arc::new(BcryptHasher::new());
-    let token_provider = Arc::new(JwtTokenProvider::new(jwt_secret, jwt_expiry_hours));
+    let token_provider = Arc::new(JwtTokenProvider::new(
+        jwt_secret,
+        jwt_expiry_hours,
+        refresh_token_repository,
+    ));
 
     // Initialize Use Cases
     let register_user = Arc::new(RegisterUserUseCase::new(
@@ -66,6 +80,7 @@ async fn main() -> std::io::Result<()> {
         login_user,
         refresh_token,
         token_provider: token_provider.clone(),
+        failed_login_repo: failed_login_repository.clone(),
     };
 
     let user_use_cases = rust_clean_api::state::UserUseCases {
@@ -77,6 +92,10 @@ async fn main() -> std::io::Result<()> {
 
     let app_state = web::Data::new(AppState::new(auth_use_cases, user_use_cases));
 
+    let brute_force_config = BruteForceConfig::from_env();
+
+    let brute_force_middleware = BruteForceMiddlewareFactory::new(brute_force_config);
+
     let addr = SocketAddr::new(host.parse().unwrap(), port);
     info!("Starting API server on {}", addr);
 
@@ -87,12 +106,14 @@ async fn main() -> std::io::Result<()> {
             .wrap(actix_middleware::Logger::default())
             .service(
                 web::scope("/auth")
+                    .wrap(brute_force_middleware.clone())
                     .service(handlers::auth_handler::register)
                     .service(handlers::auth_handler::login)
                     .service(handlers::auth_handler::refresh),
             )
             .service(
                 web::scope("/users")
+                    .wrap(JwtMiddleware)
                     .service(handlers::user_handler::get_users)
                     .service(handlers::user_handler::get_user_by_id)
                     .service(handlers::user_handler::update_user)
