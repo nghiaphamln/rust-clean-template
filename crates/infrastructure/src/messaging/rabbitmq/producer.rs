@@ -35,7 +35,7 @@ impl RabbitMQProducer {
 
         channel
             .exchange_declare(
-                &self.exchange_name,
+                self.exchange_name.as_str().into(),
                 ExchangeKind::Topic,
                 ExchangeDeclareOptions::default(),
                 FieldTable::default(),
@@ -45,8 +45,8 @@ impl RabbitMQProducer {
 
         let _confirm = channel
             .basic_publish(
-                &self.exchange_name,
-                routing_key,
+                self.exchange_name.as_str().into(),
+                routing_key.into(),
                 BasicPublishOptions::default(),
                 message,
                 BasicProperties::default(),

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use rand::Rng;
 use rust_clean_application::abstractions::TokenProvider;
 use rust_clean_application::dto::{TokenClaims, TokenResponse};
 use rust_clean_domain::{DomainError, RefreshToken, RefreshTokenRepository, User};
@@ -33,8 +32,10 @@ impl JwtTokenProvider {
     }
 
     fn generate_refresh_token_string(&self) -> String {
-        let random_bytes: [u8; 32] = rand::thread_rng().gen();
-        hex::encode(random_bytes)
+        use rand::Rng;
+        let mut bytes = [0u8; 32];
+        rand::rng().fill_bytes(&mut bytes);
+        hex::encode(bytes)
     }
 
     fn hash_token(&self, token: &str) -> String {

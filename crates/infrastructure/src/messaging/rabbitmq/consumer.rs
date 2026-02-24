@@ -40,21 +40,21 @@ impl RabbitMQConsumer {
 
         let queue = channel
             .queue_declare(
-                &self.queue_name,
+                self.queue_name.as_str().into(),
                 QueueDeclareOptions::default(),
                 FieldTable::default(),
             )
             .await
             .map_err(|e| ConsumerError::QueueDeclareError(e.to_string()))?;
 
-        let queue_name_str = queue.name().as_str();
+        let queue_name_str = queue.name();
 
         info!("Queue '{}' declared", queue_name_str);
 
         let mut consumer = channel
             .basic_consume(
-                queue_name_str,
-                "rust-clean-consumer",
+                queue_name_str.as_str().into(),
+                "rust-clean-consumer".into(),
                 BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
