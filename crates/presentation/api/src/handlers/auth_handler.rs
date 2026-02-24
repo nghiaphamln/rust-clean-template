@@ -1,34 +1,37 @@
 use actix_web::{post, rt::spawn, web, HttpRequest, HttpResponse};
-use thiserror::Error;
 
 use crate::state::AppState;
 use rust_clean_application::dto::{
     ErrorResponse, LoginRequest, RefreshTokenRequest, RegisterRequest,
 };
-use rust_clean_domain::DomainError;
+use rust_clean_application::error_types::AppError;
 
-#[derive(Error, Debug)]
-pub enum HandlerError {
-    #[error("Validation error: {0}")]
-    ValidationError(String),
+#[derive(Debug)]
+pub struct ApiError(AppError);
 
-    #[error("Authentication error: {0}")]
-    AuthError(String),
-
-    #[error("Not found: {0}")]
-    NotFound(String),
-
-    #[error("Conflict: {0}")]
-    Conflict(String),
+impl ApiError {
+    pub fn new(app_error: AppError) -> Self {
+        ApiError(app_error)
+    }
 }
 
-impl actix_web::ResponseError for HandlerError {
+impl std::fmt::Display for ApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for ApiError {}
+
+impl actix_web::ResponseError for ApiError {
     fn status_code(&self) -> actix_web::http::StatusCode {
-        match self {
-            HandlerError::ValidationError(_) => actix_web::http::StatusCode::BAD_REQUEST,
-            HandlerError::AuthError(_) => actix_web::http::StatusCode::UNAUTHORIZED,
-            HandlerError::NotFound(_) => actix_web::http::StatusCode::NOT_FOUND,
-            HandlerError::Conflict(_) => actix_web::http::StatusCode::CONFLICT,
+        match &self.0 {
+            AppError::ValidationError(_) => actix_web::http::StatusCode::BAD_REQUEST,
+            AppError::Unauthorized(_) => actix_web::http::StatusCode::UNAUTHORIZED,
+            AppError::NotFound(_) => actix_web::http::StatusCode::NOT_FOUND,
+            AppError::Conflict(_) => actix_web::http::StatusCode::CONFLICT,
+            AppError::TooManyRequests(_) => actix_web::http::StatusCode::TOO_MANY_REQUESTS,
+            AppError::InternalError(_) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -43,16 +46,15 @@ impl actix_web::ResponseError for HandlerError {
     }
 }
 
-impl From<DomainError> for HandlerError {
-    fn from(e: DomainError) -> Self {
-        match e {
-            DomainError::ValidationError(msg) => HandlerError::ValidationError(msg),
-            DomainError::Unauthorized(msg) => HandlerError::AuthError(msg),
-            DomainError::NotFound(msg) => HandlerError::NotFound(msg),
-            DomainError::Conflict(msg) => HandlerError::Conflict(msg),
-            DomainError::DatabaseError(msg) => HandlerError::ValidationError(msg),
-            DomainError::InternalError(msg) => HandlerError::ValidationError(msg),
-        }
+impl From<AppError> for ApiError {
+    fn from(e: AppError) -> Self {
+        ApiError(e)
+    }
+}
+
+impl From<rust_clean_domain::DomainError> for ApiError {
+    fn from(e: rust_clean_domain::DomainError) -> Self {
+        ApiError(AppError::from(e))
     }
 }
 
@@ -60,19 +62,14 @@ impl From<DomainError> for HandlerError {
 pub async fn register(
     state: web::Data<AppState>,
     dto: web::Json<RegisterRequest>,
-) -> Result<HttpResponse, HandlerError> {
+) -> Result<HttpResponse, ApiError> {
     let request = RegisterRequest {
         email: dto.email.clone(),
         password: dto.password.clone(),
         name: dto.name.clone(),
     };
 
-    let user = state
-        .auth
-        .register_user
-        .execute(request)
-        .await
-        .map_err(HandlerError::from)?;
+    let user = state.auth.register_user.execute(request).await?;
 
     Ok(HttpResponse::Created().json(rust_clean_application::dto::UserResponse::from(&user)))
 }
@@ -82,7 +79,7 @@ pub async fn login(
     state: web::Data<AppState>,
     dto: web::Json<LoginRequest>,
     req: HttpRequest,
-) -> Result<HttpResponse, HandlerError> {
+) -> Result<HttpResponse, ApiError> {
     let request = LoginRequest {
         email: dto.email.clone(),
         password: dto.password.clone(),
@@ -96,17 +93,14 @@ pub async fn login(
 
     let locked = state
         .auth
-        .failed_login_repo
-        .find_by_email_and_ip(&dto.email, &ip_address)
-        .await
-        .ok()
-        .flatten()
-        .is_some_and(|f| f.is_locked());
+        .brute_force
+        .is_locked(&dto.email, &ip_address)
+        .await?;
 
     if locked {
-        return Err(HandlerError::AuthError(
+        return Err(ApiError(AppError::Unauthorized(
             "Account temporarily locked due to too many failed login attempts".to_string(),
-        ));
+        )));
     }
 
     let brute_force_config = crate::middleware::BruteForceConfig::from_env();
@@ -115,22 +109,22 @@ pub async fn login(
 
     match token_response {
         Ok(response) => {
-            let failed_login_repo = state.auth.failed_login_repo.clone();
+            let brute_force = state.auth.brute_force.clone();
             let email = dto.email.clone();
             spawn(async move {
-                let _ = failed_login_repo.delete(&email).await;
+                let _ = brute_force.clear_failures(&email).await;
             });
 
             Ok(HttpResponse::Ok().json(&response))
         }
         Err(e) => {
-            let failed_login_repo = state.auth.failed_login_repo.clone();
+            let brute_force = state.auth.brute_force.clone();
             let email = dto.email.clone();
             let ip_address = ip_address.clone();
             let brute_force_config = brute_force_config.clone();
             spawn(async move {
-                let _ = failed_login_repo
-                    .register_failed_attempt(
+                let _ = brute_force
+                    .record_failure(
                         &email,
                         &ip_address,
                         brute_force_config.max_login_attempts,
@@ -139,7 +133,7 @@ pub async fn login(
                     .await;
             });
 
-            Err(HandlerError::from(e))
+            Err(ApiError::from(AppError::from(e)))
         }
     }
 }
@@ -149,25 +143,26 @@ pub async fn refresh(
     state: web::Data<AppState>,
     req: HttpRequest,
     _dto: web::Json<RefreshTokenRequest>,
-) -> Result<HttpResponse, HandlerError> {
-    // Extract the access token from Authorization header
+) -> Result<HttpResponse, ApiError> {
     let auth_header = req
         .headers()
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
-        .ok_or_else(|| HandlerError::AuthError("Missing authorization header".to_string()))?;
+        .ok_or_else(|| {
+            ApiError(AppError::Unauthorized(
+                "Missing authorization header".to_string(),
+            ))
+        })?;
 
     if !auth_header.starts_with("Bearer ") {
-        return Err(HandlerError::AuthError("Invalid token format".to_string()));
+        return Err(ApiError(AppError::Unauthorized(
+            "Invalid token format".to_string(),
+        )));
     }
 
     let token = &auth_header[7..];
 
-    let token_response = state
-        .auth
-        .refresh_token
-        .execute(token)
-        .map_err(HandlerError::from)?;
+    let token_response = state.auth.refresh_token.execute(token).await?;
 
     Ok(HttpResponse::Ok().json(&token_response))
 }

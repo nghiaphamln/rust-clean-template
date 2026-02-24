@@ -1,20 +1,19 @@
 use std::sync::Arc;
 
-use rust_clean_application::abstractions::TokenProvider;
+use rust_clean_application::abstractions::{BruteForceProtection, TokenProvider};
 use rust_clean_application::usecases::auth::{
     LoginUseCase, RefreshTokenUseCase, RegisterUserUseCase,
 };
 use rust_clean_application::usecases::users::{
     DeleteUserUseCase, GetUserByIdUseCase, GetUsersUseCase, UpdateUserUseCase,
 };
-use rust_clean_domain::FailedLoginRepository;
 
 pub struct AuthUseCases {
     pub register_user: Arc<RegisterUserUseCase>,
     pub login_user: Arc<LoginUseCase>,
     pub refresh_token: Arc<RefreshTokenUseCase>,
     pub token_provider: Arc<dyn TokenProvider>,
-    pub failed_login_repo: Arc<dyn FailedLoginRepository>,
+    pub brute_force: Arc<dyn BruteForceProtection>,
 }
 
 pub struct UserUseCases {

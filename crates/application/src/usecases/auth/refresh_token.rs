@@ -13,7 +13,7 @@ impl RefreshTokenUseCase {
         Self { token_provider }
     }
 
-    pub fn execute(&self, refresh_token: &str) -> Result<TokenResponse, DomainError> {
-        self.token_provider.refresh_tokens(refresh_token)
+    pub async fn execute(&self, refresh_token: &str) -> Result<TokenResponse, DomainError> {
+        self.token_provider.refresh_tokens(refresh_token).await
     }
 }

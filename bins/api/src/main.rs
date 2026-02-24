@@ -19,8 +19,8 @@ use rust_clean_application::usecases::users::{
     DeleteUserUseCase, GetUserByIdUseCase, GetUsersUseCase, UpdateUserUseCase,
 };
 use rust_clean_infrastructure::{
-    BcryptHasher, Database, JwtTokenProvider, PgFailedLoginRepository, PgRefreshTokenRepository,
-    PgUserRepository,
+    BcryptHasher, Database, JwtTokenProvider, PgBruteForceProtection, PgFailedLoginRepository,
+    PgRefreshTokenRepository, PgUserRepository,
 };
 
 #[actix_web::main]
@@ -44,13 +44,19 @@ async fn main() -> std::io::Result<()> {
         .parse::<i64>()
         .expect("JWT_EXPIRY_HOURS must be a valid integer");
 
+    let cors_allowed_origins: Vec<String> = env::var("CORS_ALLOWED_ORIGINS")
+        .ok()
+        .map(|s| s.split(',').map(|s| s.trim().to_string()).collect())
+        .unwrap_or_else(|| vec!["http://localhost:3000".to_string()]);
+
     // Initialize Infrastructure
     let database = Database::new(&database_url, 5)
         .await
         .expect("Failed to initialize database");
     let user_repository = Arc::new(PgUserRepository::new(database.pool().clone()));
     let refresh_token_repository = Arc::new(PgRefreshTokenRepository::new(database.pool().clone()));
-    let failed_login_repository = Arc::new(PgFailedLoginRepository::new(database.pool().clone()));
+    let failed_login_repository = PgFailedLoginRepository::new(database.pool().clone());
+    let brute_force = Arc::new(PgBruteForceProtection::new(failed_login_repository));
     let password_hasher = Arc::new(BcryptHasher::new());
     let token_provider = Arc::new(JwtTokenProvider::new(
         jwt_secret,
@@ -80,7 +86,7 @@ async fn main() -> std::io::Result<()> {
         login_user,
         refresh_token,
         token_provider: token_provider.clone(),
-        failed_login_repo: failed_login_repository.clone(),
+        brute_force,
     };
 
     let user_use_cases = rust_clean_api::state::UserUseCases {
@@ -100,9 +106,18 @@ async fn main() -> std::io::Result<()> {
     info!("Starting API server on {}", addr);
 
     HttpServer::new(move || {
+        let mut cors = Cors::default()
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+            .allowed_headers(vec!["Authorization", "Content-Type"])
+            .max_age(3600);
+
+        for origin in &cors_allowed_origins {
+            cors = cors.allowed_origin(origin);
+        }
+
         App::new()
             .app_data(app_state.clone())
-            .wrap(Cors::permissive())
+            .wrap(cors)
             .wrap(actix_middleware::Logger::default())
             .service(
                 web::scope("/auth")

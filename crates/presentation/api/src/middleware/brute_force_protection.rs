@@ -90,7 +90,13 @@ where
                 .unwrap_or_else(|| "unknown".to_string());
 
             {
-                let mut rate_map = rate_limits.lock().unwrap();
+                let mut rate_map = match rate_limits.lock() {
+                    Ok(guard) => guard,
+                    Err(poisoned) => {
+                        tracing::warn!("Rate limit mutex poisoned, resetting");
+                        poisoned.into_inner()
+                    }
+                };
                 let (count, start) = rate_map
                     .entry(ip_address.clone())
                     .or_insert((0, Instant::now()));

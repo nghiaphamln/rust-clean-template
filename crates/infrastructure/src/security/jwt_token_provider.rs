@@ -45,7 +45,7 @@ impl JwtTokenProvider {
 
 #[async_trait]
 impl TokenProvider for JwtTokenProvider {
-    fn generate_tokens(&self, user: &User) -> Result<TokenResponse, DomainError> {
+    async fn generate_tokens(&self, user: &User) -> Result<TokenResponse, DomainError> {
         let now = Utc::now();
         let exp = now + Duration::hours(self.expiry_hours);
 
@@ -65,9 +65,9 @@ impl TokenProvider for JwtTokenProvider {
 
         let refresh_token = RefreshToken::new(user.id, refresh_token_hash, expires_at);
 
-        let rt_repo = self.refresh_token_repo.clone();
-        tokio::runtime::Handle::current()
-            .block_on(rt_repo.create(&refresh_token))
+        self.refresh_token_repo
+            .create(&refresh_token)
+            .await
             .map_err(|e| DomainError::InternalError(e.to_string()))?;
 
         let expires_in = (self.expiry_hours * 3600) as u64;
@@ -79,19 +79,20 @@ impl TokenProvider for JwtTokenProvider {
         ))
     }
 
-    fn verify_token(&self, token: &str) -> Result<TokenClaims, DomainError> {
+    async fn verify_token(&self, token: &str) -> Result<TokenClaims, DomainError> {
         let validation = Validation::new(Algorithm::HS256);
         jsonwebtoken::decode(token, &self.decoding_key, &validation)
             .map(|data| data.claims)
             .map_err(|_| DomainError::Unauthorized("Invalid token".to_string()))
     }
 
-    fn refresh_tokens(&self, refresh_token: &str) -> Result<TokenResponse, DomainError> {
+    async fn refresh_tokens(&self, refresh_token: &str) -> Result<TokenResponse, DomainError> {
         let refresh_token_hash = self.hash_token(refresh_token);
 
-        let rt_repo = self.refresh_token_repo.clone();
-        let token_opt = tokio::runtime::Handle::current()
-            .block_on(rt_repo.find_by_hash(&refresh_token_hash))
+        let token_opt = self
+            .refresh_token_repo
+            .find_by_hash(&refresh_token_hash)
+            .await
             .map_err(|e| DomainError::InternalError(e.to_string()))?;
 
         let token = token_opt
@@ -105,9 +106,9 @@ impl TokenProvider for JwtTokenProvider {
 
         let user_id = token.user_id;
 
-        let rt_repo = self.refresh_token_repo.clone();
-        tokio::runtime::Handle::current()
-            .block_on(rt_repo.delete(token.id))
+        self.refresh_token_repo
+            .delete(token.id)
+            .await
             .map_err(|e| DomainError::InternalError(e.to_string()))?;
 
         let now = Utc::now();
@@ -129,9 +130,9 @@ impl TokenProvider for JwtTokenProvider {
 
         let new_refresh_token = RefreshToken::new(user_id, new_refresh_token_hash, expires_at);
 
-        let rt_repo = self.refresh_token_repo.clone();
-        tokio::runtime::Handle::current()
-            .block_on(rt_repo.create(&new_refresh_token))
+        self.refresh_token_repo
+            .create(&new_refresh_token)
+            .await
             .map_err(|e| DomainError::InternalError(e.to_string()))?;
 
         let expires_in = (self.expiry_hours * 3600) as u64;

@@ -37,4 +37,5 @@ rand = "0.8"
 sha2 = "0.10"
 hex = "0.4"
 futures-lite = "2.0"
+actix-cors = "0.7"
 

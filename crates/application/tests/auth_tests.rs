@@ -218,7 +218,7 @@ async fn test_refresh_token_success() {
 
     let usecase = RefreshTokenUseCase::new(Arc::new(mock_provider));
 
-    let result = usecase.execute("valid_refresh_token");
+    let result = usecase.execute("valid_refresh_token").await;
 
     assert!(result.is_ok());
     let token_response = result.unwrap();
@@ -242,7 +242,7 @@ async fn test_refresh_token_invalid() {
 
     let usecase = RefreshTokenUseCase::new(Arc::new(mock_provider));
 
-    let result = usecase.execute("invalid_token");
+    let result = usecase.execute("invalid_token").await;
 
     match result {
         Err(DomainError::Unauthorized(_)) => {}

@@ -39,6 +39,6 @@ impl LoginUseCase {
             return Err(DomainError::Unauthorized("Invalid credentials".to_string()));
         }
 
-        self.token_provider.generate_tokens(&user)
+        self.token_provider.generate_tokens(&user).await
     }
 }
