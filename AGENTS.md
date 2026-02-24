@@ -16,8 +16,8 @@ The workspace is organized into explicit layers. You must respect the Dependency
   - RESTRICTION: No dependencies on `infrastructure` or `presentation`. No concrete `bcrypt`, `jwt`, or `sqlx` logic here. Use abstractions defined in `abstractions/` module.
 - `crates/presentation` (Interface Adapters):
   - Contains: API Handlers (REST), Event Consumers (Workers), Middleware.
-  - Dependencies: `application`, `domain`.
-  - RESTRICTION: No direct dependency on `infrastructure`. Do not import `sqlx` or database pools directly. Interact via Application Use Cases.
+  - Dependencies: `application` only. **MUST NOT import domain directly** except for error conversion (e.g., `impl From<DomainError> for ApiError`).
+  - RESTRICTION: No direct dependency on `infrastructure`. Do not import `sqlx` or database pools directly. Interact via Application Use Cases and Abstractions.
 - `crates/infrastructure` (Frameworks & Drivers):
   - Contains: Database implementations (Sqlx), Security adapters (Bcrypt, JWT), External APIs.
   - Dependencies: `domain`, `application` (to implement traits).
@@ -27,7 +27,14 @@ The workspace is organized into explicit layers. You must respect the Dependency
 
 ## 2. Development Workflow & Commands
 
-Always run the full quality suite after ANY change.
+### Environment Setup
+```bash
+# Copy environment file
+cp .env.example .env
+
+# Database must be running (PostgreSQL on localhost:5432)
+# Check docker-compose.yml for services
+```
 
 ### Build & Check
 - Check workspace: `cargo check --workspace`
@@ -38,13 +45,37 @@ Always run the full quality suite after ANY change.
 - Run specific package tests: `cargo test -p rust-clean-application`
 - Run single test case: `cargo test -p <package> -- <test_name>`
 - Run with logs: `RUST_LOG=debug cargo test -- --nocapture`
+- Run integration tests (requires real database):
+  ```bash
+  DATABASE_URL="postgresql://postgres:postgres@localhost:5432/rust_clean_db" \
+    cargo test -p rust-clean-infrastructure
+  ```
 
 ### Code Quality (Mandatory)
 After every edit, you must execute:
 1. Format: `cargo fmt --all`
 2. Lint: `cargo clippy --all-targets --all-features -- -D warnings`
-3. Audit: `cargo audit` (Report vulnerabilities immediately)
-4. Test: `cargo test`
+3. Test: `cargo test --workspace`
+
+### Database Migrations (Flyway)
+```bash
+# Apply migrations (requires Flyway CLI installed)
+flyway -url="jdbc:postgresql://localhost:5432/rust_clean_db" \
+       -user=postgres -password=postgres \
+       -locations=filesystem:./migrations migrate
+
+# Repair checksums
+flyway -url="jdbc:postgresql://localhost:5432/rust_clean_db" \
+       -user=postgres -password=postgres \
+       -locations=filesystem:./migrations repair
+```
+
+### SQLx Compile-Time Checks
+```bash
+# Generate offline query data (requires DATABASE_URL)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/rust_clean_db" \
+  cargo sqlx prepare --workspace
+```
 
 ## 3. Code Style & Conventions
 
@@ -63,10 +94,18 @@ After every edit, you must execute:
 - Constants: `SCREAMING_SNAKE_CASE`
 - Files: `snake_case.rs`. Use strict, descriptive names (e.g., `register_user_usecase.rs` instead of `register.rs` if ambiguous).
 
+### Imports & Dependencies
+- **Presentation layer** must use Application abstractions, NOT domain types directly.
+- Use `Arc<dyn Trait>` for dependency injection.
+- When creating new abstractions, add to `crates/application/src/abstractions/` and export in `mod.rs`.
+- Implement abstractions in `crates/infrastructure/src/database/repository_impls/` or `crates/infrastructure/src/security/`.
+
 ### Error Handling
 - Use `Result<T, E>` for all fallible operations.
 - `crates/domain` defines core `DomainError`.
-- `crates/application` propagates or wraps errors into `AppError` if necessary, but prefer using `DomainError` for business logic failures.
+- `crates/application` defines `AppError` for presentation-layer errors.
+- **Presentation handlers** should return `ApiError` (which wraps `AppError`).
+- Convert domain errors to app errors in application layer: `impl From<DomainError> for AppError`.
 - Do not use `unwrap()` or `expect()` in production code. Handle errors gracefully.
 - Use `?` operator for cleaner propagation.
 
@@ -111,10 +150,11 @@ After every edit, you must execute:
 ### Adding a New Feature
 1. Define Entity/Value Object in `domain` (if needed).
 2. Define Repository Interface in `domain`.
-3. Create Use Case in `application/usecases`. Define necessary Output Ports (abstractions) if external services are needed.
-4. Implement the Interface in `infrastructure`.
-5. Expose via `presentation` (Handler/Controller).
-6. Wire everything in `bins/*/main.rs`.
+3. Create abstraction in `application/abstractions/` if infrastructure implementation needed.
+4. Create Use Case in `application/usecases`.
+5. Implement the Interface in `infrastructure`.
+6. Expose via `presentation` (Handler/Controller).
+7. Wire everything in `bins/*/main.rs`.
 
 ### Modifying Dependencies
 - Always check `Cargo.toml` in the specific crate.
